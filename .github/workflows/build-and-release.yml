@@ -1,0 +1,44 @@
+name: Phone Assistant checks
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  android:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+          cache: gradle
+      - uses: android-actions/setup-android@v3
+      - name: Build and test Android
+        run: ./gradlew :app:assembleDebug :app:testDebugUnitTest --no-daemon
+      - uses: actions/upload-artifact@v4
+        with:
+          name: phone-assistant-debug
+          path: app/build/outputs/apk/debug/*.apk
+          retention-days: 7
+  bridge:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - run: python -m pip install -r bridge/requirements.txt
+      - run: python -m unittest discover -s bridge -p 'test_*.py' -v
+      - run: python -m py_compile deploy/setup.py deploy/manage.py
+      - name: Validate Compose structure without credentials
+        run: |
+          touch deploy/ci.env
+          cp deploy/ci.env deploy/.env
+          TLS_DIRECTORY=/tmp PUBLIC_PORT=8443 CONTROL_TOKEN=not-a-production-secret docker compose -f deploy/compose.yaml config --quiet
+  # Signed releases are assembled locally with the persistent signing key.
+  # A tag alone intentionally does not publish or upload credentials.

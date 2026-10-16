@@ -1,0 +1,5 @@
+{
+  "sshHost": "phone-server",
+  "controlPath": "/opt/phone-assistant/bridge/control.py",
+  "python": "python3"
+}

@@ -1,0 +1,29 @@
+name: phone-assistant
+services:
+  bridge:
+    build:
+      context: ../bridge
+      args:
+        PIP_INDEX_URL: ${PIP_INDEX_URL:-https://pypi.org/simple}
+    restart: unless-stopped
+    network_mode: host
+    read_only: true
+    cap_drop: [ALL]
+    security_opt: [no-new-privileges:true]
+    mem_limit: 256m
+    cpus: 0.5
+    pids_limit: 64
+    env_file: .env
+    environment:
+      TLS_CERT: /tls/${TLS_CERT_NAME:-fullchain.pem}
+      TLS_KEY: /tls/${TLS_KEY_NAME:-privkey.pem}
+      STATE_FILE: /data/device.json
+      PUBLIC_BIND: 0.0.0.0
+    volumes:
+      - ${TLS_DIRECTORY:?Run setup.py first}:/tls:ro
+      - ./data:/data
+    logging:
+      driver: json-file
+      options:
+        max-size: 2m
+        max-file: '2'
