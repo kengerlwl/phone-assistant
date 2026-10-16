@@ -118,6 +118,6 @@ python3 -m venv .venv
 
 Release 签名沿用上游环境变量 `DROIDRUN_KEYSTORE_PATH`、`DROIDRUN_KEYSTORE_PASSWORD`、`DROIDRUN_KEYSTORE_KEY_ALIAS`、`DROIDRUN_KEYSTORE_KEY_PASSWORD`。通过私有环境或密钥管理器提供，不写进源码，再运行 `./gradlew :app:assembleRelease :app:testDebugUnitTest` 和 `python3 scripts/package_personal_release.py`。脚本输出签名 APK、对应源码 ZIP、SHA256 和清单；源码包不含构建缓存、真实配置、私钥或手机截图。向他人分发 APK 时，同时提供对应源码和许可证。
 
-CI 自动构建 Debug 并跑 Android、桥接与客户端测试，不持有发布签名，也不会仅因标签自动上传 Release。历史上游测试仍保留，其中非本版开放的功能测试仅验证相关代码，不代表它们可远程调用。
+当前发布授权不包含 GitHub `workflow` scope，因此云端 CI 尚未启用；配置作为 `.github/phone-assistant-checks.yml.example` 保留。具备相应权限后，可将其放入 `.github/workflows/` 启用 Debug 构建、Android/桥接/客户端测试；配置不持有发布签名，也不会仅因标签自动上传 Release。历史上游测试仍保留，其中非本版开放的功能测试仅验证相关代码，不代表它们可远程调用。
 
 1.0.0 已在 vivo X200 Ultra / Android 16 验证截图、局部图片、中文输入、点击、滚动、横屏、停止控制和短时断连恢复。真实手机重启后仅手机端恢复、长期待机、多设备和全应用兼容仍未完整验收。1.1.0 的新增流程应以该版本实际测试记录为准，不能用旧版真机结果替代。
