@@ -2,15 +2,13 @@
 
 手机主动连接、可随时停止的自托管 Android 助手。仓库包含 Android App、Python/WSS 桥接服务、Docker Compose 部署工具和标准 SSH 控制客户端。Android 11+，不需要 Root、ADB、USB 激活或同一 Wi-Fi；手机仍需移动数据或 Wi-Fi 网络。
 
-本项目是 [Mobilerun Portal](https://github.com/droidrun/mobilerun-portal) v0.7.25 的衍生版，基于提交 `d4cb7d6657385488239812e776df584f890e32fd`，修改日期 2026-10-16。保留上游作者 Niels Schmidt 的版权与 [AGPL-3.0-or-later 许可证](LICENSE)。这不是上游官方发行版，也不是无人值守或隐蔽远控工具。
+## 功能
 
-## 相比上游，改了什么
+通过电脑或 AI 工具读取手机界面、截图、点击、滑动、输入文字和启动应用。支持 JPEG/PNG 截图、原尺寸图片和局部裁剪，图片附带尺寸、缩放、偏移、旋转和捕获时间，方便视觉模型或外部 OCR 定位。App 不内置 LLM，可通过 CLI 和 RPC 接入自己的 AI 工具。
 
-无障碍控件读取、手势和反向 WebSocket 是上游已有能力。Phone Assistant 围绕个人自托管场景收敛：单设备桥接、一次性配对码、手机端连接/断开入口、不自动批准系统权限、不依赖云平台账户或计费流程。1.1.0 增加通用部署初始化、自检、配对链接预填和无需私有工具的标准 SSH 客户端。
+服务部署在自己的服务器上，使用一次性配对码或配对链接连接单台手机，不依赖云平台账户。手机主人手动授权、主动连接，也可随时断开；锁屏时拒绝控制。命令有截止时间，动作结果与页面回读分开，断线不排队、不重放。
 
-截图可在手机端压缩为 JPEG/PNG 或按设备坐标裁剪，返回尺寸、缩放、偏移、旋转和捕获时间。命令有截止时间，手势等待完成回调，动作结果与页面回读分开；断线不排队、不重放。上层 AI 可以结合控件树、截图和外部 OCR，但 App 本身没有更强的视觉模型，也不内置 LLM。
-
-这是一种更窄、更可控的使用方式，不是上游全部功能的增强版。文件访问、APK 自动安装、通知/SMS 采集、触发器、连续视频、局域网 HTTP/WS 控制入口均未开放。部分上游源码和依赖仍保留，APK 尚未专门瘦身。`docs/`、`agent-test-flows/` 中的上游历史资料不是本版的能力承诺；本 README 和实际白名单为准。
+当前不提供文件访问、APK 自动安装、通知/SMS 采集、触发器、连续视频或局域网 HTTP/WS 控制入口。功能范围以本 README 和实际接口白名单为准，其他开发与测试资料不代表已开放功能。
 
 ## 快速开始：服务端
 
@@ -73,7 +71,7 @@ python3 bridge/phone_client.py shot --crop 20,400,900,500
 python3 bridge/phone_client.py swipe --xy 500,1600 --to 500,700
 ```
 
-OCR 是可选外部适配，不随本仓库附带平台私有实现。设置 `PHONE_OCR_BINARY` 为可执行文件，客户端以 `[binary, imagePath, minConfidence]` 调用，要求 stdout 返回如下 JSON，文字框为图片像素坐标、原点在左上：
+OCR 为可选功能，需自行接入识别工具。设置 `PHONE_OCR_BINARY` 为可执行文件，客户端以 `[binary, imagePath, minConfidence]` 调用，要求 stdout 返回如下 JSON，文字框为图片像素坐标、原点在左上：
 
 ```json
 {"width":100,"height":50,"lines":[{"text":"示例","conf":0.95,"x":10,"y":5,"w":60,"h":20}]}
@@ -83,7 +81,7 @@ OCR 是可选外部适配，不随本仓库附带平台私有实现。设置 `PH
 
 ## AI 与工具集成接口
 
-公开接入点是本仓库 CLI 和 stdin RPC，不绑定任何 Agent 平台。仓库不包含现有平台的受保护 Skill、提示词或私有包装器；使用者可以根据这里的公开接口在自己的工具框架中注册能力。
+支持通过 CLI 和 stdin RPC 在自己的 AI 工具框架中注册手机操作能力，不绑定特定 Agent 平台。
 
 CLI 成功输出 `{"ok":true,"elapsedMs":123,"data":{...}}`，失败输出 `{"ok":false,"error":"..."}` 并以非零状态退出。动作已经成功而后续观察失败时，`data` 保留动作回执并包含 `observationError` 与禁止重放的 `warning`。`online:true` 仅表示 WSS 会话在线，不等于手机已解锁、权限就绪或动作已完成。
 
@@ -116,8 +114,12 @@ python3 -m venv .venv
 .venv/bin/python -m unittest discover -s bridge -p 'test_*.py' -v
 ```
 
-Release 签名沿用上游环境变量 `DROIDRUN_KEYSTORE_PATH`、`DROIDRUN_KEYSTORE_PASSWORD`、`DROIDRUN_KEYSTORE_KEY_ALIAS`、`DROIDRUN_KEYSTORE_KEY_PASSWORD`。通过私有环境或密钥管理器提供，不写进源码，再运行 `./gradlew :app:assembleRelease :app:testDebugUnitTest` 和 `python3 scripts/package_personal_release.py`。脚本输出签名 APK、对应源码 ZIP、SHA256 和清单；源码包不含构建缓存、真实配置、私钥或手机截图。向他人分发 APK 时，同时提供对应源码和许可证。
+Release 签名使用环境变量 `DROIDRUN_KEYSTORE_PATH`、`DROIDRUN_KEYSTORE_PASSWORD`、`DROIDRUN_KEYSTORE_KEY_ALIAS`、`DROIDRUN_KEYSTORE_KEY_PASSWORD`。通过私有环境或密钥管理器提供，不写进源码，再运行 `./gradlew :app:assembleRelease :app:testDebugUnitTest` 和 `python3 scripts/package_personal_release.py`。脚本输出签名 APK、对应源码 ZIP、SHA256 和清单；源码包不含构建缓存、真实配置、私钥或手机截图。向他人分发 APK 时，同时提供对应源码和许可证。
 
-当前发布授权不包含 GitHub `workflow` scope，因此云端 CI 尚未启用；配置作为 `.github/phone-assistant-checks.yml.example` 保留。具备相应权限后，可将其放入 `.github/workflows/` 启用 Debug 构建、Android/桥接/客户端测试；配置不持有发布签名，也不会仅因标签自动上传 Release。历史上游测试仍保留，其中非本版开放的功能测试仅验证相关代码，不代表它们可远程调用。
+仓库提供可选 CI 模板 `.github/phone-assistant-checks.yml.example`，默认未启用。具备相应权限后，可将其放入 `.github/workflows/` 启用 Debug 构建、Android/桥接/客户端测试；配置不持有发布签名，也不会仅因标签自动上传 Release。测试覆盖不代表全部相关功能都已开放，远程操作范围仍以接口白名单为准。
 
 1.0.0 已在 vivo X200 Ultra / Android 16 验证截图、局部图片、中文输入、点击、滚动、横屏、停止控制和短时断连恢复。真实手机重启后仅手机端恢复、长期待机、多设备和全应用兼容仍未完整验收。1.1.0 的新增流程应以该版本实际测试记录为准，不能用旧版真机结果替代。
+
+## 许可与来源
+
+本项目基于 [Mobilerun Portal](https://github.com/droidrun/mobilerun-portal) v0.7.25（修改日期：2026-10-16），采用 [AGPL-3.0-or-later](LICENSE)，保留原作者 Niels Schmidt 的版权声明。Phone Assistant 为独立维护的衍生项目，不是上游官方发行版。
